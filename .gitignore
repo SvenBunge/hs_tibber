@@ -1,0 +1,7 @@
+
+venv/
+release/*
+debug/
+
+.idea
+.DS_Store
