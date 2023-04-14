@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <config>
     <modules>
-        <module category="Energiemanagement" context="hs_tibberprices14464" id="14464" name="hs_tibberprices" sinternal_name="hs_tibberprices" external_name="Tibber Prices (14464)" version="0.1">
+        <module category="Energiemanagement" context="hs_tibber14464" id="14464" name="hs_tibber" sinternal_name="hs_tibber" external_name="Tibber (14464)" version="0.2">
             <inputs>
                 <input type="string" const_name="api_token" init_value="">API Token</input>
                 <input type="number" const_name="enable_debug" init_value="0">Enable debug section</input>
-                <input type="number" const_name="cheap_period_duration" init_value="4">duration of cheap hours (2-6)</input>
+                <input type="number" const_name="cheap_period_duration" init_value="4">duration of cheapest hours (2-6)</input>
             </inputs>
             <outputs>
                 <output type="number" const_name="current_price" init_value="-999">Current price</output>
@@ -16,36 +16,29 @@
                 <output type="number" const_name="cheap_period_first_hour" init_value="-999">First hour of cheap period</output>
                 <output type="number" const_name="cheap_period_last_hour" init_value="-999">Last hour of cheap period</output>
                 <output type="number" const_name="cheap_period_avg_price" init_value="-999">Avg price of cheap period</output>
-                <output type="number" const_name="cheap_period_now" init_value="-999">Cheap period now / 0: no; 1:yes</output>
-                <output type="number" const_name="price_0" init_value="-999">Power price 0-1</output>
-                <output type="number" const_name="price_1" init_value="-999">Power price 1-2</output>
-                <output type="number" const_name="price_2" init_value="-999">Power price 2-3</output>
-                <output type="number" const_name="price_3" init_value="-999">Power price 3-4</output>
-                <output type="number" const_name="price_4" init_value="-999">Power price 4-5</output>
-                <output type="number" const_name="price_5" init_value="-999">Power price 5-6</output>
-                <output type="number" const_name="price_6" init_value="-999">Power price 6-7</output>
-                <output type="number" const_name="price_7" init_value="-999">Power price 7-8</output>
-                <output type="number" const_name="price_8" init_value="-999">Power price 8-9</output>
-                <output type="number" const_name="price_9" init_value="-999">Power price 9-10</output>
-                <output type="number" const_name="price_10" init_value="-999">Power price 10-11</output>
-                <output type="number" const_name="price_11" init_value="-999">Power price 11-12</output>
-                <output type="number" const_name="price_12" init_value="-999">Power price 12-13</output>
-                <output type="number" const_name="price_13" init_value="-999">Power price 13-14</output>
-                <output type="number" const_name="price_14" init_value="-999">Power price 14-15</output>
-                <output type="number" const_name="price_15" init_value="-999">Power price 15-16</output>
-                <output type="number" const_name="price_16" init_value="-999">Power price 16-17</output>
-                <output type="number" const_name="price_17" init_value="-999">Power price 17-18</output>
-                <output type="number" const_name="price_18" init_value="-999">Power price 18-19</output>
-                <output type="number" const_name="price_19" init_value="-999">Power price 19-20</output>
-                <output type="number" const_name="price_20" init_value="-999">Power price 20-21</output>
-                <output type="number" const_name="price_21" init_value="-999">Power price 21-22</output>
-                <output type="number" const_name="price_22" init_value="-999">Power price 22-23</output>
-                <output type="number" const_name="price_23" init_value="-999">Power price 23-24</output>
+                <output type="number" const_name="cheap_period_now" init_value="0">Cheap period now / 0: no; 1:yes</output>
+                <output type="number" const_name="price_json_today" init_value="-999">Prices JSON today</output>
+                <output type="number" const_name="price_json_tomorrow" init_value="-999">Prices JSON tomorrow</output>
+                <output type="number" const_name="live_available" init_value="0">Live data (like Pulse) available</output>
+                <output type="number" const_name="live_power_consumption" init_value="0">Live: Power consumption</output>
+                <output type="number" const_name="live_power_production" init_value="0">Live: Power production</output>
+                <output type="number" const_name="live_voltage_L1" init_value="0">Live: Voltage L1 in V</output>
+                <output type="number" const_name="live_voltage_L2" init_value="0">Live: Voltage L2 in V</output>
+                <output type="number" const_name="live_voltage_L3" init_value="0">Live: Voltage L3 in V</output>
+                <output type="number" const_name="live_current_L1" init_value="0">Live: Current L1 in A</output>
+                <output type="number" const_name="live_current_L2" init_value="0">Live: Current L2 in A</output>
+                <output type="number" const_name="live_current_L3" init_value="0">Live: Current L3 in A</output>
+                <output type="number" const_name="live_accumulated_consumption" init_value="0">Live: Accumulated consumption in kW</output>
+                <output type="number" const_name="live_accumulated_cost" init_value="0">Live: Accumulated cost</output>
+                <output type="number" const_name="live_meter_consumption" init_value="0">Live: Last Meter consumption in kWh</output>
+                <output type="number" const_name="live_meter_production" init_value="0">Live: Last Meter production in kWh</output>
             </outputs>
            <remanent_variables>
             </remanent_variables>
             <imports>
                 <import>hsl20_3_timer</import>
+                <import>lib/six</import>
+                <import>lib/websocket</import>
             </imports>
         </module>
     </modules>
