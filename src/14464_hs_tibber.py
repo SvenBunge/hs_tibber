@@ -6,6 +6,7 @@ import datetime
 import threading
 import websocket
 import uuid
+import random
 
 TIBBER_URL = 'https://api.tibber.com/v1-beta/gql'
 ENERGY_PRICES_GRAPHQL = '''{
@@ -49,30 +50,32 @@ class Hs_tibber14464(hsl20_3.BaseModule):
         self.PIN_I_API_TOKEN=1
         self.PIN_I_ENABLE_DEBUG=2
         self.PIN_I_CHEAP_PERIOD_DURATION=3
+        self.PIN_I_EXPENSIVE_PERIOD_DURATION=4
+        self.PIN_I_WAITTIME_BETWEEN_PERIODS=5
+        self.PIN_I_AVG_THRESHOLD=6
         self.PIN_O_CURRENT_PRICE=1
         self.PIN_O_PERCENT_AVG_PRICE=2
         self.PIN_O_MIN_PRICE=3
         self.PIN_O_MAX_PRICE=4
         self.PIN_O_AVG_PRICE=5
         self.PIN_O_CHEAP_PERIOD_FIRST_HOUR=6
-        self.PIN_O_CHEAP_PERIOD_LAST_HOUR=7
-        self.PIN_O_CHEAP_PERIOD_AVG_PRICE=8
-        self.PIN_O_CHEAP_PERIOD_NOW=9
-        self.PIN_O_PRICE_JSON_TODAY=10
-        self.PIN_O_PRICE_JSON_TOMORROW=11
-        self.PIN_O_LIVE_AVAILABLE=12
-        self.PIN_O_LIVE_POWER_CONSUMPTION=13
-        self.PIN_O_LIVE_POWER_PRODUCTION=14
-        self.PIN_O_LIVE_VOLTAGE_L1=15
-        self.PIN_O_LIVE_VOLTAGE_L2=16
-        self.PIN_O_LIVE_VOLTAGE_L3=17
-        self.PIN_O_LIVE_CURRENT_L1=18
-        self.PIN_O_LIVE_CURRENT_L2=19
-        self.PIN_O_LIVE_CURRENT_L3=20
-        self.PIN_O_LIVE_ACCUMULATED_CONSUMPTION=21
-        self.PIN_O_LIVE_ACCUMULATED_COST=22
-        self.PIN_O_LIVE_METER_CONSUMPTION=23
-        self.PIN_O_LIVE_METER_PRODUCTION=24
+        self.PIN_O_CHEAP_PERIOD_AVG_PRICE=7
+        self.PIN_O_CHEAP_PERIOD_NOW=8
+        self.PIN_O_PRICE_JSON_TODAY=9
+        self.PIN_O_PRICE_JSON_TOMORROW=10
+        self.PIN_O_LIVE_AVAILABLE=11
+        self.PIN_O_LIVE_POWER_CONSUMPTION=12
+        self.PIN_O_LIVE_POWER_PRODUCTION=13
+        self.PIN_O_LIVE_VOLTAGE_L1=14
+        self.PIN_O_LIVE_VOLTAGE_L2=15
+        self.PIN_O_LIVE_VOLTAGE_L3=16
+        self.PIN_O_LIVE_CURRENT_L1=17
+        self.PIN_O_LIVE_CURRENT_L2=18
+        self.PIN_O_LIVE_CURRENT_L3=19
+        self.PIN_O_LIVE_ACCUMULATED_CONSUMPTION=20
+        self.PIN_O_LIVE_ACCUMULATED_COST=21
+        self.PIN_O_LIVE_METER_CONSUMPTION=22
+        self.PIN_O_LIVE_METER_PRODUCTION=23
         self.FRAMEWORK._run_in_context_thread(self.on_init)
 
 ########################################################################################################
@@ -167,10 +170,9 @@ class Hs_tibber14464(hsl20_3.BaseModule):
             self.set_output_sbc(self.PIN_O_MIN_PRICE, min_price)
             self.set_output_sbc(self.PIN_O_MAX_PRICE, max_price)
             self.set_output_sbc(self.PIN_O_AVG_PRICE, avg_price)
-            self.set_output_sbc(self.PIN_O_PERCENT_AVG_PRICE, current_price / avg_price)
+            self.set_output_sbc(self.PIN_O_PERCENT_AVG_PRICE, (current_price / avg_price - 1)*100)
             cheap_period, avg_period_price = self.calc_cheapest_period()
             self.set_output_sbc(self.PIN_O_CHEAP_PERIOD_FIRST_HOUR, cheap_period[0])
-            self.set_output_sbc(self.PIN_O_CHEAP_PERIOD_LAST_HOUR, cheap_period[-1] % 24)
             self.set_output_sbc(self.PIN_O_CHEAP_PERIOD_AVG_PRICE, avg_period_price)
             self.set_output_sbc(self.PIN_O_CHEAP_PERIOD_NOW, now_hour in cheap_period)
 
@@ -217,7 +219,7 @@ class Hs_tibber14464(hsl20_3.BaseModule):
         self.calculate_outputs_interval = self.FRAMEWORK.create_interval()
         self.fetch_interval.set_interval(3600000, self.on_fetch_Tibber)  # Every hour (skipped most of the time)
         self.calculate_outputs_interval.set_interval(30000, self.on_calc_outputs)  # Every 30s
-        self.last_hour = datetime.datetime.now().hour  # actual hour to prevent deleting the old one on first iteration
+        # self.last_hour = datetime.datetime.now().hour  # actual hour to prevent deleting the old one on first iteration
         self.on_input_value(self.PIN_I_API_TOKEN, self._get_input_value(self.PIN_I_API_TOKEN))
 
     def on_input_value(self, index, value):
@@ -268,6 +270,7 @@ class WebsocketTibberReader(threading.Thread):
         self.parent = parent
         self.token = token
         self.home_id = home_id
+        self.reconnect_wait_seconds = 0
         self.values = {"power": parent.PIN_O_LIVE_POWER_CONSUMPTION,
                        "powerProduction": parent.PIN_O_LIVE_POWER_PRODUCTION,
                        "voltagePhase1": parent.PIN_O_LIVE_VOLTAGE_L1,
@@ -282,6 +285,7 @@ class WebsocketTibberReader(threading.Thread):
                        "lastMeterProduction": parent.PIN_O_LIVE_METER_PRODUCTION
                        }
         self.ws = websocket.WebSocketApp(websocket_url, on_open=self.onconn, on_message=self.onmsg, on_close=self.onclose,
+                                         on_error=self.onerror,
                                     header={'User-Agent': 'Gira HomeServer LBS by Sven Bunge Spike'},
                                     subprotocols=["graphql-transport-ws"])
 
@@ -308,9 +312,22 @@ class WebsocketTibberReader(threading.Thread):
                 self.parent.set_output_sbc(self.values[key], livedata[key])
             self.parent.log_debug("WS state", "running: " + str(datetime.datetime.now()))
 
+        self.reconnect_wait_seconds = 0  # Setup reconnect threshold back to 0
+
     def onclose(self, ws):
         # We stop the thread and wait till its restarted on next tibber fetch (with maybe updated fetch WS-path)
         self.parent.log_debug("WS state", "closed")
+        # Slow down reconnect
+        randint = random.randint(5, 60)
+        self.reconnect_wait_seconds = self.reconnect_wait_seconds * 2 + randint
+        if self.reconnect_wait_seconds > 1440:
+            self.stop()
+        else:
+            time.sleep(self.reconnect_wait_seconds)
+
+    def onerror(self, ws, err):
+        now = datetime.datetime.now()
+        self.parent.log_debug("WS error " + str(now), str(err))
         self.stop()
 
     def stop(self):
