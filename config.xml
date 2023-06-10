@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <config>
     <modules>
-        <module category="Energiemanagement" context="hs_tibber14464" id="14464" name="hs_tibber" sinternal_name="hs_tibber" external_name="Tibber (14464)" version="0.3">
+        <module category="Energiemanagement" context="hs_tibber14464" id="14464" name="hs_tibber" sinternal_name="hs_tibber" external_name="Tibber (14464)" version="0.4">
             <inputs>
                 <input type="string" const_name="api_token" init_value="">API Token</input>
                 <input type="number" const_name="enable_debug" init_value="0">Enable debug section</input>
                 <input type="number" const_name="cheap_period_duration" init_value="4">duration of cheapest hours (2-6)</input>
-                <input type="number" const_name="expensive_period_duration" init_value="2">duration of expensive hours (2-6)</input>
-                <input type="number" const_name="waittime_between_periods" init_value="4">Minimum calc. gaps</input>
-                <input type="number" const_name="avg_threshold" init_value="0.015">Threshold in € between day avg. and period avg.</input>
+                <input type="number" const_name="expensive_period_duration" init_value="2">Not in use: duration of expensive hours (2-6)</input>
+                <input type="number" const_name="waittime_between_periods" init_value="3">Not in use: inimum calc. gaps</input>
+                <input type="number" const_name="avg_threshold" init_value="0.015">Not in use: Threshold in € between day avg. and period avg.</input>
             </inputs>
             <outputs>
                 <output type="number" const_name="current_price" init_value="-999">Current price</output>

@@ -133,9 +133,17 @@ class Hs_tibber14464(hsl20_3.BaseModule):
         """
         creates the tibber live thread or restarts it if live should be available and thread is dead.
         """
+        # If thread is running but data is gone or url has changed, stop it!
+        if self.websocket_thread and self.websocket_thread.is_alive() and \
+                (not self.live_available or self.live_websocket_url != self.websocket_thread.websocket_url):
+            self.websocket_thread.stop()
+
+        # Start the thread if live data should be there
         if self.live_available and self.live_websocket_url and\
-                (not self.websocket_thread or self.websocket_thread.is_alive()):
+                (not self.websocket_thread or not self.websocket_thread.is_alive()):
             self.help.log_msg("fetching: (re)starting WS thread (live data)")
+            if self.websocket_thread: # just doublecheck that the thread is stopping before we discard the reference
+                self.websocket_thread.stop()
             api_token = self._get_input_value(self.PIN_I_API_TOKEN)
             self.websocket_thread = WebsocketTibberReader(self.live_websocket_url, api_token, self.home_id, self)
             self.websocket_thread.start()
@@ -242,6 +250,7 @@ class WebsocketTibberReader(threading.Thread):
         self.token = token
         self.home_id = home_id
         self.last_data_recv_time = 0
+        self.websocket_url = websocket_url
         self.values = {"power": parent.PIN_O_LIVE_POWER_CONSUMPTION,
                        "powerProduction": parent.PIN_O_LIVE_POWER_PRODUCTION,
                        "voltagePhase1": parent.PIN_O_LIVE_VOLTAGE_L1,
