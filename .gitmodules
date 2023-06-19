@@ -1,0 +1,3 @@
+[submodule "lib/hsl2helper"]
+	path = lib/hsl2helper
+	url = git@github.com:SvenBunge/hsl2helper.git
