@@ -53,6 +53,7 @@ class Hs_tibber14464(hsl20_3.BaseModule):
         self.PIN_I_EXPENSIVE_PERIOD_DURATION=4
         self.PIN_I_WAITTIME_BETWEEN_PERIODS=5
         self.PIN_I_AVG_THRESHOLD=6
+        self.PIN_I_VOLTAGE_CURRENT_INFO=7
         self.PIN_O_CURRENT_PRICE=1
         self.PIN_O_PERCENT_AVG_PRICE=2
         self.PIN_O_MIN_PRICE=3
@@ -64,18 +65,17 @@ class Hs_tibber14464(hsl20_3.BaseModule):
         self.PIN_O_PRICE_JSON_TODAY=9
         self.PIN_O_PRICE_JSON_TOMORROW=10
         self.PIN_O_LIVE_AVAILABLE=11
-        self.PIN_O_LIVE_POWER_CONSUMPTION=12
-        self.PIN_O_LIVE_POWER_PRODUCTION=13
-        self.PIN_O_LIVE_VOLTAGE_L1=14
-        self.PIN_O_LIVE_VOLTAGE_L2=15
-        self.PIN_O_LIVE_VOLTAGE_L3=16
-        self.PIN_O_LIVE_CURRENT_L1=17
-        self.PIN_O_LIVE_CURRENT_L2=18
-        self.PIN_O_LIVE_CURRENT_L3=19
-        self.PIN_O_LIVE_ACCUMULATED_CONSUMPTION=20
-        self.PIN_O_LIVE_ACCUMULATED_COST=21
-        self.PIN_O_LIVE_METER_CONSUMPTION=22
-        self.PIN_O_LIVE_METER_PRODUCTION=23
+        self.PIN_O_LIVE_POWER=12
+        self.PIN_O_LIVE_VOLTAGE_L1=13
+        self.PIN_O_LIVE_VOLTAGE_L2=14
+        self.PIN_O_LIVE_VOLTAGE_L3=15
+        self.PIN_O_LIVE_CURRENT_L1=16
+        self.PIN_O_LIVE_CURRENT_L2=17
+        self.PIN_O_LIVE_CURRENT_L3=18
+        self.PIN_O_LIVE_ACCUMULATED_CONSUMPTION=19
+        self.PIN_O_LIVE_ACCUMULATED_COST=20
+        self.PIN_O_LIVE_METER_CONSUMPTION=21
+        self.PIN_O_LIVE_METER_FEEDIN=22
         self.FRAMEWORK._run_in_context_thread(self.on_init)
 
 ########################################################################################################
@@ -93,7 +93,7 @@ class Hs_tibber14464(hsl20_3.BaseModule):
 
     def update_tibber_price_info(self):
         self.help.log_msg("fetching: started")
-        api_token = self._get_input_value(self.PIN_I_API_TOKEN)
+        api_token = self.help.get_input(self.PIN_I_API_TOKEN)
         if api_token:
             client = self.help.new_json_client(TIBBER_URL).inject_auth_token("Bearer " + api_token)
 
@@ -144,7 +144,7 @@ class Hs_tibber14464(hsl20_3.BaseModule):
             self.help.log_msg("fetching: (re)starting WS thread (live data)")
             if self.websocket_thread: # just doublecheck that the thread is stopping before we discard the reference
                 self.websocket_thread.stop()
-            api_token = self._get_input_value(self.PIN_I_API_TOKEN)
+            api_token = self.help.get_input(self.PIN_I_API_TOKEN)
             self.websocket_thread = WebsocketTibberReader(self.live_websocket_url, api_token, self.home_id, self)
             self.websocket_thread.start()
             self.help.log_msg("fetching: started WS thread")
@@ -188,7 +188,7 @@ class Hs_tibber14464(hsl20_3.BaseModule):
             self.help.log_err("on price calc output failed")
 
     def calc_cheapest_period(self):
-        period_size = self._get_input_value(self.PIN_I_CHEAP_PERIOD_DURATION)
+        period_size = self.help.get_input(self.PIN_I_CHEAP_PERIOD_DURATION)
         if period_size < 2:
             period_size = 2
         elif period_size > 6:
@@ -239,6 +239,10 @@ class Hs_tibber14464(hsl20_3.BaseModule):
     def on_input_value(self, index, value):
         if self.PIN_I_API_TOKEN == index:  # Restart timer
             self.update_tibber_price_info()  # fetch immediately
+        elif self.PIN_I_VOLTAGE_CURRENT_INFO == index and not bool(value): # Set values to -1 when disabled
+            self.help.set_output(self.PIN_O_LIVE_CURRENT_L1, -1).set_output(self.PIN_O_LIVE_CURRENT_L2, -1)\
+                .set_output(self.PIN_O_LIVE_CURRENT_L3, -1).set_output(self.PIN_O_LIVE_VOLTAGE_L1, -1)\
+                .set_output(self.PIN_O_LIVE_VOLTAGE_L2, -1).set_output(self.PIN_O_LIVE_VOLTAGE_L3, -1)
 
 class WebsocketTibberReader(threading.Thread):
 
@@ -251,8 +255,8 @@ class WebsocketTibberReader(threading.Thread):
         self.home_id = home_id
         self.last_data_recv_time = 0
         self.websocket_url = websocket_url
-        self.values = {"power": parent.PIN_O_LIVE_POWER_CONSUMPTION,
-                       "powerProduction": parent.PIN_O_LIVE_POWER_PRODUCTION,
+        self.values = {"power": parent.PIN_O_LIVE_POWER,
+                       "powerProduction": None,
                        "voltagePhase1": parent.PIN_O_LIVE_VOLTAGE_L1,
                        "voltagePhase2": parent.PIN_O_LIVE_VOLTAGE_L2,
                        "voltagePhase3": parent.PIN_O_LIVE_VOLTAGE_L3,
@@ -262,11 +266,11 @@ class WebsocketTibberReader(threading.Thread):
                        "accumulatedConsumption": parent.PIN_O_LIVE_ACCUMULATED_CONSUMPTION,
                        "accumulatedCost": parent.PIN_O_LIVE_ACCUMULATED_COST,
                        "lastMeterConsumption": parent.PIN_O_LIVE_METER_CONSUMPTION,
-                       "lastMeterProduction": parent.PIN_O_LIVE_METER_PRODUCTION
+                       "lastMeterProduction": parent.PIN_O_LIVE_METER_FEEDIN
                        }
         self.ws = websocket.WebSocketApp(websocket_url, on_open=self.onconn, on_message=self.onmsg, on_close=self.onclose,
                                          on_error=self.onerror,
-                                    header={'User-Agent': 'Gira HomeServer LBS by Sven Bunge Spike'},
+                                    header={'User-Agent': 'Gira HomeServer LBS Beta by S. Bunge '},
                                     subprotocols=["graphql-transport-ws"])
 
     def onconn(self, ws):
@@ -287,9 +291,19 @@ class WebsocketTibberReader(threading.Thread):
             ws.send(reqStr)
             self.help.log_debug("WS state", "data requested")
         elif tpe and tpe == "next":
+            enable_voltage_current_info = self.help.get_input_bool(self.parent.PIN_I_VOLTAGE_CURRENT_INFO)
             livedata = jsnbody['payload']['data']['liveMeasurement']
-            for key in self.values.keys():
+            for key in set(self.values.keys()) - {'power', 'powerProduction'}:  # Filter power values and calc later
+                # Skip voltage and current information if not enabled
+                if not enable_voltage_current_info and (key.startswith('voltagePhase') or key.startswith('currentL')):
+                    continue
                 self.help.set_output_sbc(self.values[key], livedata[key])
+
+            # Calculate Power output (negative = feed-in)
+            consumption = livedata['power']
+            production = livedata['powerProduction']
+            self.help.set_output_sbc(self.values['power'], consumption - production)
+
             self.last_data_recv_time = datetime.datetime.now()
             self.help.log_debug("WS state", "running: " + str(self.last_data_recv_time))
         else:
