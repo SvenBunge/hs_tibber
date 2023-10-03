@@ -5,8 +5,8 @@ import datetime
 import threading
 import websocket
 import uuid
-import random
 import hsl2helper
+import pricecalc
 
 TIBBER_URL = 'https://api.tibber.com/v1-beta/gql'
 ENERGY_PRICES_GRAPHQL = '''{
@@ -49,42 +49,35 @@ class Hs_tibber14464(hsl20_3.BaseModule):
         self.LOGGER = self._get_logger(hsl20_3.LOGGING_NONE,())
         self.PIN_I_API_TOKEN=1
         self.PIN_I_ENABLE_DEBUG=2
-        self.PIN_I_CHEAP_PERIOD_DURATION=3
-        self.PIN_I_EXPENSIVE_PERIOD_DURATION=4
-        self.PIN_I_WAITTIME_BETWEEN_PERIODS=5
-        self.PIN_I_AVG_THRESHOLD=6
-        self.PIN_I_VOLTAGE_CURRENT_INFO=7
         self.PIN_O_CURRENT_PRICE=1
-        self.PIN_O_PERCENT_AVG_PRICE=2
-        self.PIN_O_MIN_PRICE=3
-        self.PIN_O_MAX_PRICE=4
-        self.PIN_O_AVG_PRICE=5
-        self.PIN_O_CHEAP_PERIOD_FIRST_HOUR=6
-        self.PIN_O_CHEAP_PERIOD_AVG_PRICE=7
-        self.PIN_O_CHEAP_PERIOD_NOW=8
-        self.PIN_O_PRICE_JSON_TODAY=9
-        self.PIN_O_PRICE_JSON_TOMORROW=10
-        self.PIN_O_LIVE_AVAILABLE=11
-        self.PIN_O_LIVE_POWER=12
-        self.PIN_O_LIVE_VOLTAGE_L1=13
-        self.PIN_O_LIVE_VOLTAGE_L2=14
-        self.PIN_O_LIVE_VOLTAGE_L3=15
-        self.PIN_O_LIVE_CURRENT_L1=16
-        self.PIN_O_LIVE_CURRENT_L2=17
-        self.PIN_O_LIVE_CURRENT_L3=18
-        self.PIN_O_LIVE_ACCUMULATED_CONSUMPTION=19
-        self.PIN_O_LIVE_ACCUMULATED_COST=20
-        self.PIN_O_LIVE_METER_CONSUMPTION=21
-        self.PIN_O_LIVE_METER_FEEDIN=22
+        self.PIN_O_CURRENT_PRICE_INDICATOR=2
+        self.PIN_O_PERCENT_AVG_PRICE=3
+        self.PIN_O_MIN_PRICE=4
+        self.PIN_O_MAX_PRICE=5
+        self.PIN_O_AVG_PRICE=6
+        self.PIN_O_PRICE_JSON_TODAY=7
+        self.PIN_O_PRICE_JSON_TOMORROW=8
+        self.PIN_O_LIVE_AVAILABLE=9
+        self.PIN_O_LIVE_POWER=10
+        self.PIN_O_LIVE_VOLTAGE_L1=11
+        self.PIN_O_LIVE_VOLTAGE_L2=12
+        self.PIN_O_LIVE_VOLTAGE_L3=13
+        self.PIN_O_LIVE_CURRENT_L1=14
+        self.PIN_O_LIVE_CURRENT_L2=15
+        self.PIN_O_LIVE_CURRENT_L3=16
+        self.PIN_O_LIVE_ACCUMULATED_CONSUMPTION=17
+        self.PIN_O_LIVE_ACCUMULATED_COST=18
+        self.PIN_O_LIVE_METER_CONSUMPTION=19
+        self.PIN_O_LIVE_METER_FEEDIN=20
         self.FRAMEWORK._run_in_context_thread(self.on_init)
 
 ########################################################################################################
 #### Own written code can be placed after this commentblock . Do not change or delete commentblock! ####
 ###################################################################################################!!!##
 
-        self.fetch_interval, self.update, self.last_hour = [None] * 3
+        self.fetch_interval, self.update = [None] * 2
         self.help = hsl2helper.HSL2Helper(self)
-        self.tibber_price_cache = [None] * 48
+        self.price = pricecalc.Prices()
         self.live_websocket_url = None
         self.live_available = False
         self.home_id = None
@@ -104,13 +97,12 @@ class Hs_tibber14464(hsl20_3.BaseModule):
                 priceinfo = json_result["data"]["viewer"]["homes"][0]["currentSubscription"]["priceInfo"]
 
                 # Create new Price Cache
-                self.tibber_price_cache = [None] * 48
-                self.parse_timeinfo(priceinfo['today'], 0)
-                self.parse_timeinfo(priceinfo['tomorrow'], 24)
+                self.price.parse_today(priceinfo['today'])
+                self.price.parse_tomorrow(priceinfo['tomorrow'])
                 self.help.set_output_sbc(self.PIN_O_PRICE_JSON_TODAY, priceinfo['today'])\
                     .set_output_sbc(self.PIN_O_PRICE_JSON_TOMORROW, priceinfo['tomorrow'])
-                self.help.log_msg("fetching: prices parsed:" + str(self.tibber_price_cache))
 
+                # Creates websocket live connection for energy meter (live) data
                 json_home = json_result["data"]["viewer"]["homes"][0]
                 if json_home:
                     new_live_websocket_url = json_result["data"]["viewer"]["websocketSubscriptionUrl"]
@@ -149,74 +141,30 @@ class Hs_tibber14464(hsl20_3.BaseModule):
             self.websocket_thread.start()
             self.help.log_msg("fetching: started WS thread")
 
-    def parse_timeinfo(self, priceinfo_hours_of_day, start):
-        if not priceinfo_hours_of_day:  # No data received. We fill with dummy values
-            for idx in range(start, start + 24):
-                self.tibber_price_cache[idx] = None
-
-        for priceinfo in priceinfo_hours_of_day:
-            priceinfo_datetime_cut = str(priceinfo["startsAt"]).split('.', 2)[0]
-            priceinfo_datetime = datetime.datetime.strptime(priceinfo_datetime_cut, '%Y-%m-%dT%H:%M:%S')
-            self.tibber_price_cache[priceinfo_datetime.hour + start] = priceinfo["total"]
-
     def on_calc_outputs(self):
         try:
             self.help.log_msg("calculator: started")
-            if filter(lambda x: x, self.tibber_price_cache) == 0:  # skip if empty price list
+            if self.price.get_today_prices() is None:
                 pass
 
             self.help.log_msg("calculator: got data")
             # recalc if price cache is filled and we may have updates or a new hour
             now_hour = datetime.datetime.now().hour
-            if now_hour != self.last_hour:
-                current_price = self.tibber_price_cache[now_hour]
-                self.help.set_output_sbc(self.PIN_O_CURRENT_PRICE, current_price)
-                min_price, max_price, avg_price = self.calc_price_range()
-                self.help.set_output_sbc(self.PIN_O_MIN_PRICE, min_price)\
-                    .set_output_sbc(self.PIN_O_MAX_PRICE, max_price)\
-                    .set_output_sbc(self.PIN_O_AVG_PRICE, avg_price)\
-                    .set_output_sbc(self.PIN_O_PERCENT_AVG_PRICE, (current_price / avg_price - 1)*100)
-                cheap_period, avg_period_price = self.calc_cheapest_period()
-                self.help.set_output_sbc(self.PIN_O_CHEAP_PERIOD_FIRST_HOUR, cheap_period[0])\
-                    .set_output_sbc(self.PIN_O_CHEAP_PERIOD_AVG_PRICE, avg_period_price)\
-                    .set_output_sbc(self.PIN_O_CHEAP_PERIOD_NOW, now_hour in cheap_period)
-                self.last_hour = now_hour
-            self.help.log_msg("calculator: finished")
+            self.price.check_day_rollover(now_hour)
+            self.help.set_output_sbc(self.PIN_O_CURRENT_PRICE, self.price.get_todays_price(now_hour))
+            self.help.set_output_sbc(self.PIN_O_CURRENT_PRICE_INDICATOR, self.price.get_todays_priceindicator(now_hour).value)
+            self.help.set_output_sbc(self.PIN_O_PERCENT_AVG_PRICE, self.price.get_price_to_avg_percentage(now_hour))
+
+            # Day values
+            (self.help.set_output_sbc(self.PIN_O_MIN_PRICE, self.price.get_today_min())
+             .set_output_sbc(self.PIN_O_AVG_PRICE, self.price.get_today_avg())
+             .set_output_sbc(self.PIN_O_MAX_PRICE, self.price.get_today_max()))
 
             self.restart_tibber_live_thread()
         except Exception:
             self.help.log_err("on price calc output failed")
-
-    def calc_cheapest_period(self):
-        period_size = self.help.get_input(self.PIN_I_CHEAP_PERIOD_DURATION)
-        if period_size < 2:
-            period_size = 2
-        elif period_size > 6:
-            period_size = 6
-
-        avg_price = 999  # period avg
-        avg_start = -1  # first hour of the cheap period
-        start = datetime.datetime.now().hour
-        for i in range(start, start+24):
-            period = slice(i, i + period_size)
-            period_prices = self.tibber_price_cache[period]
-            period_prices = filter(lambda x: x is not None, period_prices)
-            if len(period_prices) != period_size:
-                break
-            period_avg_price = sum(period_prices) / period_size
-            if avg_price > period_avg_price:
-                avg_start = i
-                avg_price = period_avg_price
-
-        return map(lambda x: x % 24, range(avg_start, avg_start + period_size)), avg_price
-
-    def calc_price_range(self):
-        filtered_prices = list(filter(lambda x: x is not None, self.tibber_price_cache))
-
-        if len(filtered_prices) < 1:
-            return DUMMY_VALUE, DUMMY_VALUE, DUMMY_VALUE
-        else:
-            return min(filtered_prices), max(filtered_prices), sum(filtered_prices) / len(filtered_prices)
+        finally:
+            self.help.log_msg("calculator: finished")
 
     def on_update(self):
         # Update tibber every hour
@@ -239,13 +187,14 @@ class Hs_tibber14464(hsl20_3.BaseModule):
     def on_input_value(self, index, value):
         if self.PIN_I_API_TOKEN == index:  # Restart timer
             self.update_tibber_price_info()  # fetch immediately
-        elif self.PIN_I_VOLTAGE_CURRENT_INFO == index and not bool(value): # Set values to -1 when disabled
-            self.help.set_output(self.PIN_O_LIVE_CURRENT_L1, -1).set_output(self.PIN_O_LIVE_CURRENT_L2, -1)\
-                .set_output(self.PIN_O_LIVE_CURRENT_L3, -1).set_output(self.PIN_O_LIVE_VOLTAGE_L1, -1)\
-                .set_output(self.PIN_O_LIVE_VOLTAGE_L2, -1).set_output(self.PIN_O_LIVE_VOLTAGE_L3, -1)
 
 class WebsocketTibberReader(threading.Thread):
-
+    """
+    Websocket watcher go get the live values from a tibber pulse like device.
+    Not used for any kind of pricing but for getting all numbers from the power meter.
+    Its running in a dedicated thread - and I guess the websocket is also running in a second. It's writing
+    it's values directy to the outputs.
+    """
     def __init__(self, websocket_url, token, home_id, parent):
         threading.Thread.__init__(self)
         self.help = parent.help
@@ -274,10 +223,17 @@ class WebsocketTibberReader(threading.Thread):
                                     subprotocols=["graphql-transport-ws"])
 
     def onconn(self, ws):
+        """
+        Register the websocket like a graphql-ws transport - including the auth.
+        """
         ws.send('{"type":"connection_init","payload":{"token":"' + self.token + '"}}')
         self.help.log_debug("WS state", "sent auth")
 
     def onmsg(self, ws, msg):
+        """
+        After sending the auth we get an connection_ack back. Then we can ask for the data we want listen for.
+        The data is send with a next type
+        """
         self.help.log_debug("WS data", msg)
 
         jsnbody = json.loads(msg)
@@ -291,12 +247,9 @@ class WebsocketTibberReader(threading.Thread):
             ws.send(reqStr)
             self.help.log_debug("WS state", "data requested")
         elif tpe and tpe == "next":
-            enable_voltage_current_info = self.help.get_input_bool(self.parent.PIN_I_VOLTAGE_CURRENT_INFO)
             livedata = jsnbody['payload']['data']['liveMeasurement']
             for key in set(self.values.keys()) - {'power', 'powerProduction'}:  # Filter power values and calc later
                 # Skip voltage and current information if not enabled
-                if not enable_voltage_current_info and (key.startswith('voltagePhase') or key.startswith('currentL')):
-                    continue
                 self.help.set_output_sbc(self.values[key], livedata[key])
 
             # Calculate Power output (negative = feed-in)
@@ -307,6 +260,7 @@ class WebsocketTibberReader(threading.Thread):
             self.last_data_recv_time = datetime.datetime.now()
             self.help.log_debug("WS state", "running: " + str(self.last_data_recv_time))
         else:
+            ## Todo: Handle "complete". Not shure what is this for and how we should handle this. Maybe asking the support.
             self.help.log_debug("WS state", "got crazy shit: " + str(tpe))
 
     def onclose(self, ws):
@@ -333,3 +287,11 @@ class WebsocketTibberReader(threading.Thread):
         # WS died, let's end this wrapping thread.
         self.stop()
         self.help.log_msg("WS thread: End run thread")
+
+
+class hourlyPriceInfo():
+
+    def __init__(self, hour, price):
+        self.hour = hour
+        self.price = price
+

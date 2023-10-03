@@ -28,9 +28,9 @@ import socket
 
 import six
 
-from ._exceptions import *
-from ._ssl_compat import *
-from ._utils import *
+from _exceptions import *
+from _ssl_compat import *
+from _utils import *
 
 DEFAULT_SOCKET_OPTION = [(socket.SOL_TCP, socket.TCP_NODELAY, 1)]
 if hasattr(socket, "SO_KEEPALIVE"):

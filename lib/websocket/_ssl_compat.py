@@ -37,7 +37,7 @@ try:
     __all__.append("HAVE_CONTEXT_CHECK_HOSTNAME")
 
     HAVE_SSL = True
-except ImportError:
+except Exception:
     # dummy class of SSLError for ssl none-support environment.
     class SSLError(Exception):
         pass

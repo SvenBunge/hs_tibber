@@ -38,4 +38,8 @@ You can replace step 4 with the `./buildRelease.sh` script. With the help of the
  
 ## Libraries
 
+* enum34
+* six
+* websocket
+
 The shipped libraries may distributed under a different license conditions. Respect those licenses as well!

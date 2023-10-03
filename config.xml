@@ -1,25 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <config>
     <modules>
-        <module category="Energiemanagement" context="hs_tibber14464" id="14464" name="hs_tibber" sinternal_name="hs_tibber" external_name="Tibber (14464)" version="0.5">
+        <module category="Energiemanagement" context="hs_tibber14464" id="14464" name="hs_tibber" external_name="Tibber (14464)" version="0.6">
             <inputs>
                 <input type="string" const_name="api_token" init_value="">API Token</input>
                 <input type="number" const_name="enable_debug" init_value="0">Enable debug section</input>
-                <input type="number" const_name="cheap_period_duration" init_value="4">duration of cheapest hours (2-6)</input>
-                <input type="number" const_name="expensive_period_duration" init_value="2">Not in use: duration of expensive hours (2-6)</input>
-                <input type="number" const_name="waittime_between_periods" init_value="3">Not in use: inimum calc. gaps</input>
-                <input type="number" const_name="avg_threshold" init_value="0.015">Not in use: Threshold in € between day avg. and period avg.</input>
-                <input type="number" const_name="voltage_current_info" init_value="0">1: Enable output of voltage / current of L1-3</input>
             </inputs>
             <outputs>
-                <output type="number" const_name="current_price" init_value="-999">Current price</output>
+                <output type="number" const_name="current_price" init_value="-999">Actual price</output>
+                <output type="number" const_name="current_price_indicator" init_value="-999">price indicator: -2: very cheap, 0: normal, 2: very exp.</output>
                 <output type="number" const_name="percent_avg_price" init_value="-999">% over/under avg.</output>
                 <output type="number" const_name="min_price" init_value="-999">Min. price</output>
                 <output type="number" const_name="max_price" init_value="-999">Max. price</output>
                 <output type="number" const_name="avg_price" init_value="-999">Average price</output>
-                <output type="number" const_name="cheap_period_first_hour" init_value="-999">First hour of cheap period</output>
-                <output type="number" const_name="cheap_period_avg_price" init_value="-999">Avg price of cheap period</output>
-                <output type="number" const_name="cheap_period_now" init_value="0">Cheap period now / 0: no; 1:yes</output>
                 <output type="number" const_name="price_json_today" init_value="-999">Prices JSON today</output>
                 <output type="number" const_name="price_json_tomorrow" init_value="-999">Prices JSON tomorrow</output>
                 <output type="number" const_name="live_available" init_value="0">Live data (like Pulse) available</output>
@@ -40,8 +33,10 @@
             <imports>
                 <import>hsl20_3_timer</import>
                 <import>lib/six</import>
+                <import>lib/enum34</import>
                 <import>lib/websocket</import>
                 <import>lib/hsl2helper</import>
+                <import>lib/pricecalc</import>
             </imports>
         </module>
     </modules>
