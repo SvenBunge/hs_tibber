@@ -16,7 +16,7 @@ class PriceLine:
     def get_price(self):
         return self.price
 
-    def get_price_indicator(self):
+    def get_price_3dlevel(self):
         return self.priceindicator
 
     def __str__(self):
@@ -39,9 +39,25 @@ class Prices:
         if self.prices_today is not None:
             return self.prices_today[hour].get_price()
 
-    def get_todays_priceindicator(self, hour):
+    def get_todays_price_1dlevel(self, hour):
+        percentage = self.get_todays_price(hour) / self.get_today_avg()
+        if percentage <= 0.6:
+            return TibberPriceLevel.VERY_CHEAP
+        elif 0.6 < percentage <= 0.9:
+            return TibberPriceLevel.CHEAP
+        elif 0.9 < percentage < 1.15:
+            return TibberPriceLevel.NORMAL
+        elif 1.15 <= percentage < 1.4:
+            return TibberPriceLevel.EXPENSIVE
+        elif 1.4 <= percentage:
+            return TibberPriceLevel.VERY_EXPENSIVE
+
+
+    def get_todays_price_3dlevel(self, hour):
+        """This is calculated by tibber directly
+        see: https://developer.tibber.com/docs/reference#pricelevel"""
         if self.prices_today is not None:
-            return self.prices_today[hour].get_price_indicator()
+            return self.prices_today[hour].get_price_3dlevel()
 
     def get_today_avg(self):
         if self.prices_today is not None:
@@ -96,7 +112,7 @@ class Prices:
             priceinfo_datetime_cut = str(priceinfo["startsAt"]).split('.', 2)[0]
             priceinfo_datetime = datetime.datetime.strptime(priceinfo_datetime_cut, '%Y-%m-%dT%H:%M:%S')
             # Todo: Work with timezone to prevent hazzle on summer time changeover
-            price_indicator = TibberPriceIndicator.from_str(priceinfo["level"])
+            price_indicator = TibberPriceLevel.from_str(priceinfo["level"])
             prices.append(PriceLine(priceinfo_datetime.hour, priceinfo["total"], price_indicator))
 
         return prices
@@ -107,7 +123,7 @@ class Prices:
             self.prices_today = self.prices_tomorrow
             self.prices_tomorrow = None
 
-class TibberPriceIndicator(Enum):
+class TibberPriceLevel(Enum):
     VERY_CHEAP = -2
     CHEAP = -1
     NORMAL = 0
@@ -116,6 +132,6 @@ class TibberPriceIndicator(Enum):
 
     @staticmethod
     def from_str(value):
-        for t in TibberPriceIndicator:
+        for t in TibberPriceLevel:
             if t.name == value:
                 return t

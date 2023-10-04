@@ -1,18 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <config>
     <modules>
-        <module category="Energiemanagement" context="hs_tibber14464" id="14464" name="hs_tibber" external_name="Tibber (14464)" version="0.6">
+        <module category="Energiemanagement" context="hs_tibber14464" id="14464" name="hs_tibber" external_name="Tibber (14464)" version="0.7">
             <inputs>
                 <input type="string" const_name="api_token" init_value="">API Token</input>
                 <input type="number" const_name="enable_debug" init_value="0">Enable debug section</input>
             </inputs>
             <outputs>
                 <output type="number" const_name="current_price" init_value="-999">Actual price</output>
-                <output type="number" const_name="current_price_indicator" init_value="-999">price indicator: -2: very cheap, 0: normal, 2: very exp.</output>
-                <output type="number" const_name="percent_avg_price" init_value="-999">% over/under avg.</output>
-                <output type="number" const_name="min_price" init_value="-999">Min. price</output>
-                <output type="number" const_name="max_price" init_value="-999">Max. price</output>
-                <output type="number" const_name="avg_price" init_value="-999">Average price</output>
+                <output type="number" const_name="percent_avg_price" init_value="-999">% over/under todays avg.</output>
+                <output type="number" const_name="current_1d_price_level" init_value="-999">1d price level: -2: very cheap, 0: normal, 2: very exp.</output>
+                <output type="number" const_name="current_3d_price_level" init_value="-999">3d price level: -2: very cheap, 0: normal, 2: very exp.</output>
+                <output type="number" const_name="min_price" init_value="-999">Todays min. price</output>
+                <output type="number" const_name="max_price" init_value="-999">Todays max. price</output>
+                <output type="number" const_name="avg_price" init_value="-999">Todays avg. price</output>
                 <output type="number" const_name="price_json_today" init_value="-999">Prices JSON today</output>
                 <output type="number" const_name="price_json_tomorrow" init_value="-999">Prices JSON tomorrow</output>
                 <output type="number" const_name="live_available" init_value="0">Live data (like Pulse) available</output>

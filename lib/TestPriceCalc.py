@@ -1,6 +1,6 @@
 import unittest
 import json
-from pricecalc import PriceLine, Prices, TibberPriceIndicator
+from pricecalc import PriceLine, Prices, TibberPriceLevel
 
 
 class PriceCalcTest(unittest.TestCase):
@@ -49,6 +49,18 @@ class PriceCalcTest(unittest.TestCase):
         prices = Prices()
         prices.set_today(today)
         self.assertEqual(55.0, prices.get_price_to_avg_percentage(19))  # add assertion here
+
+
+    def test_calculate_day_price_level(self):
+        today = PriceCalcTest.createDayArray(0.2461, 0.244, 0.2443, 0.2426, 0.247, 0.2513,
+                                                  0.2819, 0.3039, 0.3051, 0.2855, 0.2585, 0.2432,
+                                                  0.2406, 0.2378, 0.2381, 0.2408, 0.2593, 0.2917,
+                                                  0.3711, 0.4247, 0.3236, 0.2759, 0.2605, 0.2521)
+        prices = Prices()
+        prices.set_today(today)
+        self.assertEqual(TibberPriceLevel.VERY_EXPENSIVE, prices.get_todays_price_1dlevel(19))  # add assertion here
+        self.assertEqual(TibberPriceLevel.NORMAL, prices.get_todays_price_1dlevel(6))  # add assertion here
+        self.assertEqual(TibberPriceLevel.CHEAP, prices.get_todays_price_1dlevel(15))  # add assertion here
 
 
     def test_today_parsing(self):
@@ -180,7 +192,7 @@ class PriceCalcTest(unittest.TestCase):
         prices = Prices()
         prices.parse_today(today)
         self.assertEqual(float('0.2521'), prices.get_todays_price(23))
-        self.assertEqual(TibberPriceIndicator.NORMAL, prices.get_todays_priceindicator(23))
+        self.assertEqual(TibberPriceLevel.NORMAL, prices.get_todays_price_3dlevel(23))
 
     @staticmethod
     def createDayArray(*args):

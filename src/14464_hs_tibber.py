@@ -50,25 +50,26 @@ class Hs_tibber14464(hsl20_3.BaseModule):
         self.PIN_I_API_TOKEN=1
         self.PIN_I_ENABLE_DEBUG=2
         self.PIN_O_CURRENT_PRICE=1
-        self.PIN_O_CURRENT_PRICE_INDICATOR=2
-        self.PIN_O_PERCENT_AVG_PRICE=3
-        self.PIN_O_MIN_PRICE=4
-        self.PIN_O_MAX_PRICE=5
-        self.PIN_O_AVG_PRICE=6
-        self.PIN_O_PRICE_JSON_TODAY=7
-        self.PIN_O_PRICE_JSON_TOMORROW=8
-        self.PIN_O_LIVE_AVAILABLE=9
-        self.PIN_O_LIVE_POWER=10
-        self.PIN_O_LIVE_VOLTAGE_L1=11
-        self.PIN_O_LIVE_VOLTAGE_L2=12
-        self.PIN_O_LIVE_VOLTAGE_L3=13
-        self.PIN_O_LIVE_CURRENT_L1=14
-        self.PIN_O_LIVE_CURRENT_L2=15
-        self.PIN_O_LIVE_CURRENT_L3=16
-        self.PIN_O_LIVE_ACCUMULATED_CONSUMPTION=17
-        self.PIN_O_LIVE_ACCUMULATED_COST=18
-        self.PIN_O_LIVE_METER_CONSUMPTION=19
-        self.PIN_O_LIVE_METER_FEEDIN=20
+        self.PIN_O_PERCENT_AVG_PRICE=2
+        self.PIN_O_CURRENT_1D_PRICE_LEVEL=3
+        self.PIN_O_CURRENT_3D_PRICE_LEVEL=4
+        self.PIN_O_MIN_PRICE=5
+        self.PIN_O_MAX_PRICE=6
+        self.PIN_O_AVG_PRICE=7
+        self.PIN_O_PRICE_JSON_TODAY=8
+        self.PIN_O_PRICE_JSON_TOMORROW=9
+        self.PIN_O_LIVE_AVAILABLE=10
+        self.PIN_O_LIVE_POWER=11
+        self.PIN_O_LIVE_VOLTAGE_L1=12
+        self.PIN_O_LIVE_VOLTAGE_L2=13
+        self.PIN_O_LIVE_VOLTAGE_L3=14
+        self.PIN_O_LIVE_CURRENT_L1=15
+        self.PIN_O_LIVE_CURRENT_L2=16
+        self.PIN_O_LIVE_CURRENT_L3=17
+        self.PIN_O_LIVE_ACCUMULATED_CONSUMPTION=18
+        self.PIN_O_LIVE_ACCUMULATED_COST=19
+        self.PIN_O_LIVE_METER_CONSUMPTION=20
+        self.PIN_O_LIVE_METER_FEEDIN=21
         self.FRAMEWORK._run_in_context_thread(self.on_init)
 
 ########################################################################################################
@@ -152,8 +153,11 @@ class Hs_tibber14464(hsl20_3.BaseModule):
             now_hour = datetime.datetime.now().hour
             self.price.check_day_rollover(now_hour)
             self.help.set_output_sbc(self.PIN_O_CURRENT_PRICE, self.price.get_todays_price(now_hour))
-            self.help.set_output_sbc(self.PIN_O_CURRENT_PRICE_INDICATOR, self.price.get_todays_priceindicator(now_hour).value)
-            self.help.set_output_sbc(self.PIN_O_PERCENT_AVG_PRICE, self.price.get_price_to_avg_percentage(now_hour))
+
+            # AVG-Stuff
+            (self.help.set_output_sbc(self.PIN_O_PERCENT_AVG_PRICE, self.price.get_price_to_avg_percentage(now_hour))
+             .set_output_sbc(self.PIN_O_CURRENT_1D_PRICE_LEVEL, self.price.get_todays_price_1dlevel(now_hour).value)
+             .set_output_sbc(self.PIN_O_CURRENT_3D_PRICE_LEVEL, self.price.get_todays_price_3dlevel(now_hour).value))
 
             # Day values
             (self.help.set_output_sbc(self.PIN_O_MIN_PRICE, self.price.get_today_min())
