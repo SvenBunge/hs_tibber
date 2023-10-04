@@ -263,8 +263,11 @@ class WebsocketTibberReader(threading.Thread):
 
             self.last_data_recv_time = datetime.datetime.now()
             self.help.log_debug("WS state", "running: " + str(self.last_data_recv_time))
+        elif tpe and tpe == "complete":
+            # I guess complete is when the pulse went offline after successful transmission
+            self.help.log_debug("WS state", "got complete - ending thread")
+            self.stop()
         else:
-            ## Todo: Handle "complete". Not shure what is this for and how we should handle this. Maybe asking the support.
             self.help.log_debug("WS state", "got crazy shit: " + str(tpe))
 
     def onclose(self, ws):
