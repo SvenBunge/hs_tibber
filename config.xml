@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <config>
     <modules>
-        <module category="Energiemanagement" context="hs_tibber14464" id="14464" name="hs_tibber" external_name="Tibber (14464)" version="0.7">
+        <module category="Energiemanagement" context="hs_tibber14464" id="14464" name="hs_tibber" external_name="Tibber (14464)" version="0.8">
             <inputs>
                 <input type="string" const_name="api_token" init_value="">API Token</input>
                 <input type="number" const_name="enable_debug" init_value="0">Enable debug section</input>
@@ -14,17 +14,17 @@
                 <output type="number" const_name="min_price" init_value="-999">Todays min. price</output>
                 <output type="number" const_name="max_price" init_value="-999">Todays max. price</output>
                 <output type="number" const_name="avg_price" init_value="-999">Todays avg. price</output>
-                <output type="number" const_name="price_json_today" init_value="-999">Prices JSON today</output>
-                <output type="number" const_name="price_json_tomorrow" init_value="-999">Prices JSON tomorrow</output>
+                <output type="string" const_name="price_json_today" init_value="-999">Prices JSON today</output>
+                <output type="string" const_name="price_json_tomorrow" init_value="-999">Prices JSON tomorrow</output>
                 <output type="number" const_name="live_available" init_value="0">Live data (like Pulse) available</output>
-                <output type="number" const_name="live_power" init_value="0">Live Power: +consumption / -feedin</output>
+                <output type="number" const_name="live_power" init_value="0">Live Power: +consumption / -feedin in W</output>
                 <output type="number" const_name="live_voltage_L1" init_value="-1">Live: Voltage L1 in V</output>
                 <output type="number" const_name="live_voltage_L2" init_value="-1">Live: Voltage L2 in V</output>
                 <output type="number" const_name="live_voltage_L3" init_value="-1">Live: Voltage L3 in V</output>
                 <output type="number" const_name="live_current_L1" init_value="-1">Live: Current L1 in A</output>
                 <output type="number" const_name="live_current_L2" init_value="-1">Live: Current L2 in A</output>
                 <output type="number" const_name="live_current_L3" init_value="-1">Live: Current L3 in A</output>
-                <output type="number" const_name="live_accumulated_consumption" init_value="0">Live: Accumulated consumption in kW</output>
+                <output type="number" const_name="live_accumulated_consumption" init_value="0">Live: Accumulated consumption in kWh</output>
                 <output type="number" const_name="live_accumulated_cost" init_value="0">Live: Accumulated cost</output>
                 <output type="number" const_name="live_meter_consumption" init_value="0">Live: Last Meter consumption in kWh</output>
                 <output type="number" const_name="live_meter_feedin" init_value="0">Live: Last Meter feed-in in kWh</output>
