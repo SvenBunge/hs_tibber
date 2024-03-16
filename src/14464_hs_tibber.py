@@ -41,12 +41,12 @@ DUMMY_VALUE = -999
 ########################################################################################################
 ##** Code created by generator - DO NOT CHANGE! **##
 
-class Hs_tibber14464(hsl20_3.BaseModule):
+class Hs_tibber14464(hsl20_4.BaseModule):
 
     def __init__(self, homeserver_context):
-        hsl20_3.BaseModule.__init__(self, homeserver_context, "hs_tibber14464")
+        hsl20_4.BaseModule.__init__(self, homeserver_context, "hs_tibber14464")
         self.FRAMEWORK = self._get_framework()
-        self.LOGGER = self._get_logger(hsl20_3.LOGGING_NONE,())
+        self.LOGGER = self._get_logger(hsl20_4.LOGGING_NONE,())
         self.PIN_I_API_TOKEN=1
         self.PIN_I_ENABLE_DEBUG=2
         self.PIN_O_CURRENT_PRICE=1
@@ -70,7 +70,6 @@ class Hs_tibber14464(hsl20_3.BaseModule):
         self.PIN_O_LIVE_ACCUMULATED_COST=19
         self.PIN_O_LIVE_METER_CONSUMPTION=20
         self.PIN_O_LIVE_METER_FEEDIN=21
-        self.FRAMEWORK._run_in_context_thread(self.on_init)
 
 ########################################################################################################
 #### Own written code can be placed after this commentblock . Do not change or delete commentblock! ####
@@ -181,11 +180,9 @@ class Hs_tibber14464(hsl20_3.BaseModule):
         self.on_calc_outputs()
 
     def on_init(self):
-        time.sleep(3)  # wait till startup is done in parallel
         self.update = self.FRAMEWORK.create_interval()
         self.update.set_interval(60000, self.on_update)  # Every 60s
         self.update.start()
-        time.sleep(3)
         self.on_update()  # Start faster!
 
     def on_input_value(self, index, value):

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <config>
     <modules>
-        <module category="Energiemanagement" context="hs_tibber14464" id="14464" name="hs_tibber" external_name="Tibber (14464)" version="0.8">
+        <module category="Energiemanagement" context="hs_tibber14464" id="14464" name="hs_tibber" external_name="Tibber (14464)" version="0.9">
             <inputs>
                 <input type="string" const_name="api_token" init_value="">API Token</input>
                 <input type="number" const_name="enable_debug" init_value="0">Enable debug section</input>
@@ -32,7 +32,7 @@
            <remanent_variables>
             </remanent_variables>
             <imports>
-                <import>hsl20_3_timer</import>
+                <import>hsl20_4_timer</import>
                 <import>lib/six</import>
                 <import>lib/enum34</import>
                 <import>lib/websocket</import>
