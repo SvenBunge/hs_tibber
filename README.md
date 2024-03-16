@@ -3,7 +3,7 @@ Gira Homeserver 4 Logicmodule to fetch the actual and forecasted power prices pe
 
 ## Developer Notes
 
-Developed for the GIRA HomeServer 4.11! Could work with HS 4.7< - but without support.
+Developed for the GIRA HomeServer 4.12! Won't work before due SSL certificate issues between HS and Tibber API.
 Licensed under the LGPL to keep all copies & forks free!
 
 :exclamation: **If you fork this project and distribute the module by your own CHANGE the Logikbaustein-ID because 14464 is only for this one and registered to @SvenBunge !!** :exclamation:
